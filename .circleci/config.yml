@@ -6,7 +6,7 @@ workflows:
       - go-previous
       - go-latest
 base: &base
-  working_directory: /go/src/github.com/prodatalab/cobra
+  working_directory: /go/src/github.com/spf13/cobra
   steps:
     - checkout
     - run:

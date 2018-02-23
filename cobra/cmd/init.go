@@ -18,7 +18,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/prodatalab/cobra"
+	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
@@ -141,7 +141,7 @@ import (
 	"os"
 {{if .viper}}
 	homedir "github.com/mitchellh/go-homedir"{{end}}
-	"github.com/prodatalab/cobra"{{if .viper}}
+	"github.com/spf13/cobra"{{if .viper}}
 	"github.com/spf13/viper"{{end}}
 ){{if .viper}}
 

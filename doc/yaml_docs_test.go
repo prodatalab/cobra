@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/prodatalab/cobra"
+	"github.com/spf13/cobra"
 )
 
 func TestGenYamlDoc(t *testing.T) {
