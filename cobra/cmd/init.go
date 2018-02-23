@@ -18,7 +18,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/spf13/cobra"
+	"github.com/prodatalab/cobra"
 	"github.com/spf13/viper"
 )
 
@@ -39,6 +39,7 @@ and the appropriate structure for a Cobra-based CLI application.
 Init will not use an existing directory with contents.`,
 
 	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Println("INFO: In Run::x")
 		wd, err := os.Getwd()
 		if err != nil {
 			er(err)
@@ -140,7 +141,7 @@ import (
 	"os"
 {{if .viper}}
 	homedir "github.com/mitchellh/go-homedir"{{end}}
-	"github.com/spf13/cobra"{{if .viper}}
+	"github.com/prodatalab/cobra"{{if .viper}}
 	"github.com/spf13/viper"{{end}}
 ){{if .viper}}
 
