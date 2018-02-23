@@ -16,6 +16,7 @@
 package cmd
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
@@ -48,6 +49,8 @@ func init() {
 	initGpl3()
 	initLgpl()
 	initAgpl()
+	fmt.Println("INFO: calling initMpl2 now")
+	initMpl2()
 }
 
 // getLicense returns license specified by user in flag or in config.
@@ -76,6 +79,12 @@ func getLicense() License {
 }
 
 func copyrightLine() string {
+	copyright := viper.GetString("copyright")
+
+	if copyright != "" {
+		return copyright
+	}
+
 	author := viper.GetString("author")
 
 	year := viper.GetString("year") // For tests.
@@ -107,6 +116,7 @@ func matchLicense(name string) string {
 	}
 
 	for key, lic := range Licenses {
+		fmt.Println("INFO:", key)
 		for _, match := range lic.PossibleMatches {
 			if strings.EqualFold(name, match) {
 				return key
