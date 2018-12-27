@@ -14,9 +14,13 @@
 package cmd
 
 import (
+	"bytes"
 	"fmt"
+	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/prodatalab/cobra"
 	"github.com/spf13/viper"
@@ -86,6 +90,9 @@ func initializeProject(project *Project) {
 	createLicenseFile(project.License(), project.AbsPath())
 	createMainFile(project)
 	createRootCmdFile(project)
+	createDockerfile(project)
+	createReadme(project)
+	createHelmCharts(project)
 }
 
 func createLicenseFile(license License, path string) {
@@ -225,4 +232,136 @@ func initConfig() {
 		er(err)
 	}
 
+}
+
+func createDockerfile(project *Project) {
+	template := `
+	FROM golang as builder
+
+	ENV GO111MODULE=on
+
+	WORKDIR /app
+
+	COPY go.mod .
+	COPY go.sum .
+
+	RUN go mod download
+
+	COPY . .
+
+	RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build
+
+	FROM scratch
+	COPY --from=builder /app/{{.appName}} /app/
+	EXPOSE 8080
+	ENTRYPOINT ["/app/{{.appName}}"]
+	`
+	data := project.ProjectToMap()
+	data[""] = viper.GetBool("useViper")
+	dockerfile, err := executeTemplate(template, data)
+	if err != nil {
+		er(err)
+	}
+
+	err = writeStringToFile(filepath.Join(project.AbsPath(), "Dockerfile"), dockerfile)
+	if err != nil {
+		er(err)
+	}
+}
+
+func createReadme(project *Project) {
+	template := `
+	{{.appName}}
+	============
+	`
+	data := project.ProjectToMap()
+	data[""] = viper.GetBool("useViper")
+	readme, err := executeTemplate(template, data)
+	if err != nil {
+		er(err)
+	}
+
+	err = writeStringToFile(filepath.Join(project.AbsPath(), "README.md"), readme)
+	if err != nil {
+		er(err)
+	}
+}
+
+func createHelmCharts(project *Project) {
+	fmt.Println("Here I am")
+	template := `helm create {{.appName}}`
+	data := project.ProjectToMap()
+	data[""] = viper.GetBool("useViper")
+	path := project.AbsPath()
+	fmt.Println("path: " + path)
+	helmCmd, err := executeTemplate(template, data)
+	if err != nil {
+		er(err)
+	}
+	// fmt.Println("helmCmd: " + helmCmd + " absPath: " + project.AbsPath())
+	var workDir string
+	workDir, err = os.Getwd()
+	if err != nil {
+		er(err)
+	}
+	err = os.Chdir(project.AbsPath())
+	if err != nil {
+		er(err)
+	}
+	curDir, _ := os.Getwd()
+	fmt.Println("working directory: " + curDir)
+	cmdList := strings.Fields(helmCmd)
+	cmd := exec.Command(cmdList[0], cmdList[1], cmdList[2])
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	err = cmd.Run()
+	if err != nil {
+		er(err)
+	}
+	fmt.Println("out: " + out.String())
+	tmpList := strings.Split(project.Name(), "/")
+	projectName := tmpList[len(tmpList)-1]
+	fmt.Println("projectName: " + projectName)
+	files, err := ioutil.ReadDir("./" + projectName)
+	if err != nil {
+		er(err)
+	}
+	for _, f := range files {
+		os.Rename(projectName+"/"+f.Name(), f.Name())
+	}
+	os.RemoveAll("./" + projectName)
+
+	// run helm manifests through the template engine
+	customizeHelmCharts(project)
+
+	// add requirements.yaml
+	helmdeps := `
+	# see helm docs
+	# list your dependent charts here
+	# dependencies:
+	`
+	err = ioutil.WriteFile("./requirements.yaml", []byte(helmdeps), 0644)
+	if err != nil {
+		er(err)
+	}
+
+	err = os.Chdir(workDir)
+	if err != nil {
+		er(err)
+	}
+}
+
+func customizeHelmCharts(p *Project) {
+	// load the values.yaml file
+	values := viper.New()
+	values.SetConfigName("values")
+	values.AddConfigPath(".")
+	err := values.ReadInConfig()
+	if err != nil {
+		er(err)
+	}
+	names := strings.Split(p.Name(), "/")
+	name := names[len(names)-1]
+	values.Set("image.repository", "prodatalab/"+name)
+	values.WriteConfig()
 }
