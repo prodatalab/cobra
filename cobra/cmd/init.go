@@ -93,6 +93,7 @@ func initializeProject(project *Project) {
 	createDockerfile(project)
 	createReadme(project)
 	createHelmCharts(project)
+	createDroneFile(project)
 }
 
 func createLicenseFile(license License, path string) {
@@ -364,4 +365,29 @@ func customizeHelmCharts(p *Project) {
 	name := names[len(names)-1]
 	values.Set("image.repository", "prodatalab/"+name)
 	values.WriteConfig()
+}
+
+func createDroneFile(p *Project) {
+	droneText := `
+kind: pipeline
+name: default
+
+steps:
+- name: build
+  image: golang
+  commands:
+  - go build
+  - go test
+`
+	// data := project.ProjectToMap()
+	// data[""] = viper.GetBool("useViper")
+	// readme, err := executeTemplate(template, data)
+	// if err != nil {
+	//   er(err)
+	// }
+
+	err := writeStringToFile(filepath.Join(p.AbsPath(), ".drone.yml"), droneText)
+	if err != nil {
+		er(err)
+	}
 }
